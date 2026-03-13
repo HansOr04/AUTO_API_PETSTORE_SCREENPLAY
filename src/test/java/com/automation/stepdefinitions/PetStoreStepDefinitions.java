@@ -10,20 +10,28 @@ import io.cucumber.java.es.Cuando;
 import io.cucumber.java.es.Dado;
 import io.cucumber.java.es.Entonces;
 import net.serenitybdd.screenplay.Actor;
-import net.serenitybdd.screenplay.actors.Cast;
 import net.serenitybdd.screenplay.actors.OnStage;
+import net.serenitybdd.screenplay.actors.OnlineCast;
+import net.thucydides.model.environment.SystemEnvironmentVariables;
+import net.thucydides.model.util.EnvironmentVariables;
 
 import static net.serenitybdd.screenplay.GivenWhenThen.seeThat;
 import static org.hamcrest.Matchers.equalTo;
 
 public class PetStoreStepDefinitions {
 
+    private final EnvironmentVariables env = SystemEnvironmentVariables.createEnvironmentVariables();
+
     private Actor actor;
+    private String lastUpdatedName;
 
     @Before
     public void setUp() {
-        OnStage.setTheStage(Cast.ofStandardActors());
+        OnStage.setTheStage(new OnlineCast());
         actor = OnStage.theActorCalled("tester");
+        String baseUrl = env.getProperty("restapi.base.url",
+                              "https://petstore.swagger.io/v2");
+        actor.remember("restapi.base.url", baseUrl);
     }
 
     @Dado("el sistema tiene disponible la API de PetStore")
@@ -44,6 +52,7 @@ public class PetStoreStepDefinitions {
 
     @Cuando("el usuario actualiza el nombre de la mascota a {string}")
     public void elUsuarioActualizaElNombreDeLaMascota(String nuevoNombre) {
+        lastUpdatedName = nuevoNombre;
         actor.attemptsTo(UpdatePet.withNewName(nuevoNombre));
         actor.should(seeThat(PetApiResponse.statusCode(), equalTo(200)));
     }
@@ -51,7 +60,7 @@ public class PetStoreStepDefinitions {
     @Entonces("la mascota consultada refleja el nombre actualizado")
     public void laMascotaConsultadaReflejaElNombreActualizado() {
         actor.attemptsTo(GetPet.byStoredId());
-        actor.should(seeThat(PetApiResponse.petName(), equalTo("Firulais Updated")));
+        actor.should(seeThat(PetApiResponse.petName(), equalTo(lastUpdatedName)));
     }
 
     @Cuando("el usuario elimina la mascota registrada")

@@ -1,22 +1,25 @@
 package com.automation.tasks;
 
-import net.serenitybdd.core.Serenity;
 import net.serenitybdd.rest.SerenityRest;
 import net.serenitybdd.screenplay.Actor;
-import net.serenitybdd.screenplay.Performable;
+import net.serenitybdd.screenplay.Task;
 
-public class DeletePet implements Performable {
+
+import static net.serenitybdd.screenplay.Tasks.instrumented;
+
+public class DeletePet implements Task {
 
     public static DeletePet byStoredId() {
-        return new DeletePet();
+        return instrumented(DeletePet.class);
     }
 
     @Override
     public <T extends Actor> void performAs(T actor) {
-        long petId = Serenity.sessionVariableCalled("petId");
+        long petId = actor.recall("petId");
+        String baseUrl = actor.recall("restapi.base.url");
 
         var response = SerenityRest.given()
-                .baseUri("https://petstore.swagger.io/v2")
+                .baseUri(baseUrl)
                 .contentType("application/json")
                 .when()
                 .delete("/pet/" + petId)
@@ -24,6 +27,6 @@ public class DeletePet implements Performable {
                 .extract()
                 .response();
 
-        Serenity.setSessionVariable("lastResponse").to(response);
+        actor.remember("lastResponse", response);
     }
 }

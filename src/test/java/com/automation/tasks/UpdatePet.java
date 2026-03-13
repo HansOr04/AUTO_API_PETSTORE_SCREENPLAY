@@ -1,11 +1,14 @@
 package com.automation.tasks;
 
-import net.serenitybdd.core.Serenity;
+import com.automation.model.Pet;
 import net.serenitybdd.rest.SerenityRest;
 import net.serenitybdd.screenplay.Actor;
-import net.serenitybdd.screenplay.Performable;
+import net.serenitybdd.screenplay.Task;
 
-public class UpdatePet implements Performable {
+
+import static net.serenitybdd.screenplay.Tasks.instrumented;
+
+public class UpdatePet implements Task {
 
     private final String newName;
 
@@ -13,30 +16,28 @@ public class UpdatePet implements Performable {
         this.newName = newName;
     }
 
+
+
     public static UpdatePet withNewName(String newName) {
-        return new UpdatePet(newName);
+        return instrumented(UpdatePet.class, newName);
     }
 
     @Override
     public <T extends Actor> void performAs(T actor) {
-        long petId = Serenity.sessionVariableCalled("petId");
-
-        String body = "{"
-                + "\"id\": " + petId + ","
-                + "\"name\": \"" + newName + "\","
-                + "\"status\": \"available\""
-                + "}";
+        long petId = actor.recall("petId");
+        String baseUrl = actor.recall("restapi.base.url");
+        Pet pet = Pet.withIdAndName(petId, newName, "available");
 
         var response = SerenityRest.given()
-                .baseUri("https://petstore.swagger.io/v2")
+                .baseUri(baseUrl)
                 .contentType("application/json")
-                .body(body)
+                .body(pet)
                 .when()
                 .put("/pet")
                 .then()
                 .extract()
                 .response();
 
-        Serenity.setSessionVariable("lastResponse").to(response);
+        actor.remember("lastResponse", response);
     }
 }
